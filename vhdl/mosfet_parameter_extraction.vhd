@@ -1,4 +1,4 @@
--- This is an myentity VHDL model
+-- This is an mosfet_parameter_extraction VHDL model
 -- Initially written by Marko Kosunen
 -- Last modification by Marko Kosunen, marko.kosunen@aalto.fi, 16.01.2020 15:51
 library ieee;
@@ -7,14 +7,14 @@ use ieee.numeric_std.all;
 use std.textio.all;
 
 
-entity myentity is
+entity mosfet_parameter_extraction is
     port( reset : in std_logic;
           A : in  std_logic;
           Z : out std_logic
         );
-end myentity;
+end mosfet_parameter_extraction;
 
-architecture rtl of myentity is
+architecture rtl of mosfet_parameter_extraction is
 begin
     invert:process(A)
     begin

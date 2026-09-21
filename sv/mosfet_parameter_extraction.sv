@@ -1,4 +1,4 @@
-module myentity( input reset,
+module mosfet_parameter_extraction( input reset,
                  input A, 
                  output Z );
 //reset does nothing
