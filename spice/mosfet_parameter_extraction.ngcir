@@ -1,19 +1,29 @@
 ****NMOS Level 1: transfer, output, and temperature curves******
 
 ******** Transistor: drain gate source bulk model****
-.subckt mosfet_parameter_extraction D G S B
+.subckt mosfet_parameter_extraction D G S B 
 M1 D G S B n1 W=1u L=0.35u
 
 **** LEVEL 1 NMOS ****
 .MODEL N1 NMOS
 + LEVEL=1 TPG=1
-+ KP=2.33082E-05
-+ LAMBDA=0.013333 VT0=0.69486 GAMMA=0.60309 PHI=1
-+ TOX=1.9800000E-08  XJ=0.2U            LD=0.1U           NSUB=4.9999999E+16
-+ NSS=0.0000000E+00
-+ CJ=4.091E-4        MJ=0.307           PB=1.0
-+ CJSW=3.078E-10     MJSW=1.0E-2        
-+ CGSO=3.93E-10      CGDO=3.93E-10
++ KP={param_KP}
++ LAMBDA={param_lambda} 
++ VT0={param_vt0} 
++ GAMMA={param_gamma} 
++ PHI={param_phi} 
++ TOX={param_tox}  
++ XJ=0.2U            
++ LD=0.1U           
++ NSUB={param_nsub}
++ NSS={param_nss}
++ CJ={param_cj}        
++ MJ={param_mj}           
++ PB={param_pb}
++ CJSW={param_cjsw}     
++ MJSW={param_mjsw}        
++ CGSO={param_cgso}      
++ CGDO={param_cgdo}
 
 .ends mosfet_parameter_extraction
 

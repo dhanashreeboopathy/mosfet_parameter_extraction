@@ -45,6 +45,22 @@ class mosfet_parameter_extraction(rtl,spice,thesdk):
         self.model='py';             # Can be set externally, but is not propagated
         self.par= False              # By default, no parallel processing
         self.queue= []               # By default, no parallel processing
+        self.kp=2.33082E-05
+        self.lamda=0.013333
+        self.vt0=0.69486
+        self.gamma=0.60309
+        self.phi=1
+        self.tox=1.9800000E-08
+        self.nsub=4.9999999E+16
+        self.nss=0.0000000E+00
+        self.cj=4.091E-4
+        self.mj=0.307
+        self.pb=1.0
+        self.cjsw=3.078E-10
+        self.mjsw=3.078e-10
+        self.cgso=3.93e-10
+        self.cgdo=3.93e-10
+
 
         if len(arg)>=1:
             parent=arg[0]
@@ -123,6 +139,22 @@ class mosfet_parameter_extraction(rtl,spice,thesdk):
                             'sweep_vds': self.vdd,
                             'sweep_vss': 0,
                             'sweep_vbs': 0,
+                            'param_KP':self.kp,
+                            'param_lambda':self.lamda,
+                            'param_vt0':self.vt0,
+                            'param_gamma':self.gamma,
+                            'param_phi':self.phi,
+                            'param_tox':self.tox,
+                            'param_nsub':self.nsub,
+                            'param_nss':self.nss,
+                            'param_cj':self.cj,
+                            'param_mj':self.mj,
+                            'param_pb':self.pb,
+                            'param_cjsw':self.cjsw,
+                            'param_mjsw':self.mjsw,
+                            'param_cgso':self.cgso,
+                            'param_cgdo':self.cgdo,
+
 
                         }
 
