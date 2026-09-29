@@ -26,6 +26,7 @@ if not (os.path.abspath('../../thesdk') in sys.path):
 from thesdk import *
 from rtl import *
 from spice import *
+import random
 
 import numpy as np
 
@@ -60,6 +61,9 @@ class mosfet_parameter_extraction(rtl,spice,thesdk):
         self.mjsw=3.078e-10
         self.cgso=3.93e-10
         self.cgdo=3.93e-10
+        self.vg=5
+        self.vb=0
+        self.vd=5
 
 
         if len(arg)>=1:
@@ -99,46 +103,16 @@ class mosfet_parameter_extraction(rtl,spice,thesdk):
             self.main()
         else:
             if self.model in ['eldo','spectre','ngspice']:
-                # Creating a clock signal, which is used for testing the sample output features
-                #_=spice_iofile(self, name='GATE', dir='in', iotype='sample', ionames='G', rs=2*self.Rs, \
-                #               vhi=self.vdd, trise=1/(self.Rs*8), tfall=1/(self.Rs*8))
 
-                # Sample type input
-                #_=spice_iofile(self, name='SOURCE', dir='out', iotype='sample', ionames='A', rs=self.Rs, \
-                #               vhi=self.vdd, trise=1/(self.Rs*4), tfall=1/(self.Rs*4))
-
-                # These are helper IOS for analog simulation
-                #_=spice_iofile(self, name='SOURCE', dir='out', iotype='event', sourcetype='V', ionames='S')
-                
-                # Sample type output
-                # Clock is used to sample the waveform in analog simulation
-                #_=spice_iofile(self, name='Z', dir='out', iotype='sample', ionames='Z', trigger='CLK', \
-                #               vth=self.vdd/2,edgetype='rising',ioformat='dec')
-                
-
-                # Saving the analog waveform of the input as well
-                #_=spice_iofile(self, name='A_OUT', dir='out', iotype='event', sourcetype='V', ionames='A')
-
-                # For Extracting rising edges from the output waveform
-                #_=spice_iofile(self, name='Z_RISE', dir='out', iotype='time', sourcetype='V', ionames='Z', \
-                #               edgetype='rising',vth=self.vdd/2)
-
-
-                ## Extracting values of A and Z at falling edges of CLK in decimal format (integer, in this case 0 or 1)
-                ## The clock signal can be any node voltage in the simulation
-                #_=spice_iofile(self, name='A_DIG', dir='out', iotype='sample', ionames='A', trigger='CLK', \
-                #               vth=self.vdd/2,edgetype='rising',ioformat='dec')
-
-                # Multithreading, options and parameters
                 self.nproc = 2
                 self.spiceoptions = {
                             'eps': '1e-6'
                         }
                 self.spiceparameters = {
-                            'sweep_vgs': self.vdd,
-                            'sweep_vds': self.vdd,
+                            'sweep_vgs': self.vg,
+                            'sweep_vds': self.vd,
                             'sweep_vss': 0,
-                            'sweep_vbs': 0,
+                            'sweep_vbs': self.vb,
                             'param_KP':self.kp,
                             'param_lambda':self.lamda,
                             'param_vt0':self.vt0,
@@ -169,23 +143,38 @@ class mosfet_parameter_extraction(rtl,spice,thesdk):
                         }
 
                 # Example of defining supplies (not used here because the example inverter has no supplies)
-                #_=spice_dcsource(self,name='gsn',value='sweep_vgs',pos='G',neg='0',extract=True)
-                #_=spice_dcsource(self,name='dsn',value='sweep_vds',pos='D',neg='0')
-                #_=spice_dcsource(self,name='ssn',value='sweep_vss',pos='S',neg='0',extract=True)
-                #_=spice_dcsource(self,name='bsn',value='sweep_vbs',pos='B',neg='0',extract=True)
+                _=spice_dcsource(self,name='GSN',value='sweep_vgs',pos='G',neg='0',extract=True)
+                _=spice_dcsource(self,name='DSN',value='sweep_vds',pos='D',neg='0',extract=True)
+                _=spice_dcsource(self,name='SSN',value='sweep_vss',pos='S',neg='0',extract=True)
+                _=spice_dcsource(self,name='BSN',value='sweep_vbs',pos='B',neg='0',extract=True)
 
                 # Adding a resistor between VDD and VSS to demonstrate power consumption extraction
                 # This also demonstrates how to inject manual commands in to the testbench
                 if self.model=='spectre':
                     self.spicemisc.append('simulator lang=spice')
                 #self.spicemisc.append('Rtest VDD VSS 2000')
-                self.spicemisc.append('VGSN G 0 sweep_vgs') 
-                self.spicemisc.append('VDSN D 0 sweep_vds') 
-                self.spicemisc.append('VSSN S 0 sweep_vss') 
-                self.spicemisc.append('VBSN B 0 sweep_vbs')
-                self.spicemisc.append('.control')
-                self.spicemisc.append('dc vgsn 0 1.5 0.05 vbsn 0 -2.5 -0.5')
-                self.spicemisc.append("plot vssn#branch ylabel 'Id vs. Vgs, Vbs 0 ... -2.5'")
+                #self.spicemisc.append('VGSN G 0 sweep_vgs') 
+                #self.spicemisc.append('VDSN D 0 sweep_vds') 
+                #self.spicemisc.append('VSSN S 0 sweep_vss') 
+                #self.spicemisc.append('VBSN B 0 sweep_vbs')
+
+                ##raw file is only generated if not with the .control block
+                #self.spicemisc.append('.dc vgsn 0 1.5 0.05 vbsn 0 -2.5 -0.5')
+                #self.spicemisc.append('.dc vdsn 0 5 0.05 vgsn 0 5 0.05')
+                #self.spicemisc.append('.op') ## will only spit out the values if in termianl if no -r
+                #self.spicemisc.append('show all')
+
+                #self.spicemisc.append('.control')
+                #self.spicemisc.append('dc vgsn 0 1.5 0.05 vbsn 0 -2.5 -0.5')
+                #self.spicemisc.append('dc vgsn 0 1.5 0.05 vbsn 0 -2.5 -0.5')
+                #self.spicemisc.append("print vssn#branch") ##print alnd plot will only work if dc is within the control block
+               
+                #self.spicemisc.append("save vssn#branchl")
+                #self.spicemisc.append("save all")
+                #self.spicemisc.append("run")
+                
+                #self.spicemisc.append("save @m.Xmosfet_parameter_extraction.M1[vdsat]")
+                
                 if self.model=='spectre':
                     self.spicemisc.append('simulator lang=spectre')
                 
@@ -202,9 +191,40 @@ class mosfet_parameter_extraction(rtl,spice,thesdk):
                 # Simulation command
                 #_=spice_simcmd(self,sim='tran',plotlist=plotlist)
                 self.preserve_spicefiles=True
-                #_=spice_simcmd(self,sim='dc',plotlist=['*:vgs','*:id'],sweep='sweep_vgs',swpstart=0.1,swpstop=1.5,step=0.05)
+                self.preserve_iofiles=True
+                self.interactive_spice=False
+                if self.interactive_spice:
+                    self.spicemisc.append("plot vssn#branch ylabel 'Id vs. Vgs, Vbs 0 ... -2.5'")
+                #capture=['gm','gds','vgs','vth','vds','ids','cds','cdb','cgs','cgd','region','vsat']
+                capture=['gm']
+                base='Xmosfet_parameter_extraction'
+                dev=['.M1']
+                plotlist=[base+'%s[%s]' % (d,c) for d in dev for c in capture]
+                plotlist=['m.Xmosfet_parameter_extraction.m1[gm]','m.Xmosfet_parameter_extraction.m1[vgs]','m.Xmosfet_parameter_extraction.m1[von]','m.Xmosfet_parameter_extraction.m1[vds]','m.Xmosfet_parameter_extraction.m1[id]']
+                #mc=False
+                #self.fmin=10
+                #self.fmax=10e9
+                #self.strobeperiod=100e6
+                #self.noise=False
+                #self.mc_seed=random.randint(100000,999999)
+
+                _=spice_simcmd(self,sim='dc',plotlist=plotlist)
+                
+
+                #_=spice_simcmd(self,sim='dc',plotlist=plotlist,fmin=self.fmin,fmax=self.fmax,fscale='log',fstepsize=100,strobeperiod=self.strobeperiod,mc=mc,mc_seed=self.mc_seed,noise=self.noise)
                 #_=spice_simcmd(sim='dc',sweep='',subcktname='mosfet_parameter_extraction',swpstart=0.1,swpstop=1.5,step=0.05)
                 self.run_spice()
+                self.gm=self.extracts.Members['oppts']['xmosfet_parameter_extraction']['gm']
+                self.vgs=self.extracts.Members['oppts']['xmosfet_parameter_extraction']['vgs']
+                self.vth=self.extracts.Members['oppts']['xmosfet_parameter_extraction']['von']
+                self.vds=self.extracts.Members['oppts']['xmosfet_parameter_extraction']['vds']
+                self.ids=self.extracts.Members['oppts']['xmosfet_parameter_extraction']['id']
+                print('gm=',self.gm)
+                print('vgs=',self.vgs)
+                print('vth=',self.vth)
+                print('vds=',self.vds)
+                print('ids=',self.ids)
+                                
 
             if self.par:
                 self.queue.put(self.IOS.Members)
@@ -228,43 +248,37 @@ if __name__=="__main__":
     indata=np.cos(2*math.pi/length*np.arange(length)).reshape(-1,1)
 
     models=[ 'ngspice']
+    #mosfet_supply=[0.01,0.1,1.8,3.3,5.0]
+    mosfet_supply=[5.0]
     duts=[]
     plotters=[]
-    for model in models:
-        d=mosfet_parameter_extraction()
-        duts.append(d) 
-        d.model=model
-        d.Rs=rs
-        #d.IOS.Members['GATE'].Data=indata
-        d.init()
-        d.run()
+    gm_array=[]
+    von_array=[]
+    id_array=[]
+    plt.figure()
 
-    pdb.set_trace()
-    for k in range(len(duts)):
-        hfont = {'fontname':'Sans'}
-        figure,axes=plt.subplots(2,1,sharex=True)
-        x = np.arange(length).reshape(-1,1)
-        axes[0].plot(x,indata)
-        axes[0].set_ylim(-1.1, 1.1);
-        axes[0].set_xlim((np.amin(x), np.amax(x)));
-        axes[0].set_ylabel('Input', **hfont,fontsize=18);
-        axes[0].grid(True)
-        axes[1].plot(x, duts[k].IOS.Members['Z'].Data)
-        axes[1].set_ylim(-1.1, 1.1);
-        axes[1].set_xlim((np.amin(x), np.amax(x)));
-        axes[1].set_ylabel('Output', **hfont,fontsize=18);
-        axes[1].set_xlabel('Sample (n)', **hfont,fontsize=18);
-        axes[1].grid(True)
-        titlestr = "mosfet model %s" %(duts[k].model) 
-        plt.suptitle(titlestr,fontsize=20);
-        plt.grid(True);
-        printstr="./inv_%s.eps" %(duts[k].model)
-        plt.show(block=False);
-        figure.savefig(printstr, format='eps', dpi=300);
-    #This is here to keep the images visible
-    #For batch execution, you should comment the following line 
-    if args.show:
-       input()
-    #This is to have exit status for succesfuulexecution
-    sys.exit(0)
+    #######plotting transfer curve###########################
+    for model in models:
+        for vd in mosfet_supply:
+            vg_voltage=np.linspace(0,10,50)
+            for vg in vg_voltage: 
+                d=mosfet_parameter_extraction()
+                d.init()
+                duts.append(d) 
+                d.model=model
+                d.Rs=rs 
+                d.vg=vg
+                d.vd=vd
+                #pdb.set_trace()         
+                d.run()
+                gm_array.append(d.gm)
+                von_array.append(d.vth)
+                id_array.append(d.ids)
+            plt.plot(vg_voltage.tolist(),np.asarray(id_array)/1e-3,label=str(vd))
+
+    plt.legend(title='Vds')
+    plt.xlabel('Vgs (V)')
+    plt.ylabel('Ids (mA) ')
+    plt.show()
+
 
